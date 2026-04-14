@@ -8,46 +8,63 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// SpreadHandler a struct that tracks spreads for a given currency pair symbols manifest
 type SpreadHandler struct {
-	symbols []string
+	symbols map[string]struct{} //currency pairs as a set
 	spreads map[string]*Spread
 	mu      sync.RWMutex
 }
 
+// NewHandler create a SpreadHandler for a given manifest of symbols
 func NewHandler(symbols []string) *SpreadHandler {
-	spreads := make(map[string]*Spread)
+	spreads := make(map[string]*Spread, len(symbols))
+	symbolSet := make(map[string]struct{}, len(symbols))
+
 	for _, s := range symbols {
+		symbolSet[s] = struct{}{}
 		spreads[s] = nil
 	}
+
 	return &SpreadHandler{
-		symbols: symbols,
+		symbols: symbolSet,
 		spreads: spreads,
 	}
 }
 
+// GetSpread returns value of a given spread symbol
 func (h *SpreadHandler) GetSpread(c *gin.Context) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
-	if spread, ok := h.spreads[c.Param("symbol")]; ok {
-		if spread.Spread >= 0 {
-			c.JSON(http.StatusOK, spread)
-		} else {
-			c.JSON(http.StatusNotFound, "Spread not set")
-		}
-	} else {
+	spread, ok := h.spreads[c.Param("symbol")]
+	if !ok {
 		c.JSON(http.StatusNotFound, "Symbol not listed")
+		return
 	}
+
+	if spread == nil {
+		c.JSON(http.StatusNotFound, "Spread not set")
+		return
+	}
+
+	c.JSON(http.StatusOK, spread)
 }
 
+// GetSymbols returns symbols for which spreads are tracked
 func (h *SpreadHandler) GetSymbols(c *gin.Context) {
-	c.JSON(http.StatusOK, h.symbols)
+	symbolsAsList := make([]string, 0, len(h.symbols))
+	for s := range h.symbols {
+		symbolsAsList = append(symbolsAsList, s)
+	}
+	c.JSON(http.StatusOK, symbolsAsList)
 }
 
+// SetSpread sets a spread for a symbol and updates the updated time
 func (h *SpreadHandler) SetSpread(c *gin.Context) {
 	var body struct {
 		Spread float64 `json:"spread"`
 	} //expected from POST request
+
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, "Invalid request body")
 		return
@@ -60,12 +77,15 @@ func (h *SpreadHandler) SetSpread(c *gin.Context) {
 	symbol := c.Param("symbol")
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	if spread, ok := h.spreads[symbol]; ok {
-		spread.UpdatedAt = time.Now()
-		spread.Spread = body.Spread
-	} else {
+	if _, ok := h.spreads[symbol]; !ok {
 		c.JSON(http.StatusNotFound, "Symbol not found")
 		return
+	}
+
+	h.spreads[symbol] = &Spread{
+		Symbol:    symbol,
+		Spread:    body.Spread,
+		UpdatedAt: time.Now(),
 	}
 
 	c.Status(http.StatusOK)
