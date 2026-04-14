@@ -38,12 +38,12 @@ func (h *SpreadHandler) GetSpread(c *gin.Context) {
 
 	spread, ok := h.spreads[c.Param("symbol")]
 	if !ok {
-		c.JSON(http.StatusNotFound, "Symbol not listed")
+		c.JSON(http.StatusNotFound, gin.H{"error": "Symbol not listed"})
 		return
 	}
 
 	if spread == nil {
-		c.JSON(http.StatusNotFound, "Spread not set")
+		c.JSON(http.StatusNotFound, gin.H{"error": "Spread not set"})
 		return
 	}
 
@@ -52,6 +52,9 @@ func (h *SpreadHandler) GetSpread(c *gin.Context) {
 
 // GetSymbols returns symbols for which spreads are tracked
 func (h *SpreadHandler) GetSymbols(c *gin.Context) {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	
 	symbolsAsList := make([]string, 0, len(h.symbols))
 	for s := range h.symbols {
 		symbolsAsList = append(symbolsAsList, s)
@@ -66,11 +69,11 @@ func (h *SpreadHandler) SetSpread(c *gin.Context) {
 	} //expected from POST request
 
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, "Invalid request body")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 	if body.Spread <= 0 {
-		c.JSON(http.StatusBadRequest, "Bad request: spread should be > 0")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Bad request: spread should be > 0"})
 		return
 	}
 
@@ -78,7 +81,7 @@ func (h *SpreadHandler) SetSpread(c *gin.Context) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	if _, ok := h.spreads[symbol]; !ok {
-		c.JSON(http.StatusNotFound, "Symbol not found")
+		c.JSON(http.StatusNotFound, gin.H{"error": "Symbol not found"})
 		return
 	}
 

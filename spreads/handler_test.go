@@ -56,6 +56,18 @@ func TestSetSpread_InvalidSpread_400(t *testing.T) {
 	}
 }
 
+func TestSetSpread_NegativeSpread_400(t *testing.T) {
+	r, _ := setupRouter()
+	body := []byte(`{"spread": -0.5}`)
+	req, _ := http.NewRequest("PATCH", "/spreads/EURUSD", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+}
+
 func TestSetSpread_InvalidSymbol_404(t *testing.T) {
 	r, _ := setupRouter()
 	body := []byte(`{"spread": 1}`)
@@ -131,5 +143,15 @@ func TestGetSpread_Full_200(t *testing.T) {
 
 	if resp.UpdatedAt.IsZero() {
 		t.Fatalf("expected UpdatedAt to be set")
+	}
+}
+
+func TestGetSpread_ValidSymbolNotSet_404(t *testing.T) {
+	r, _ := setupRouter()
+	req, _ := http.NewRequest("GET", "/spreads/EURUSD", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", w.Code)
 	}
 }

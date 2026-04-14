@@ -19,4 +19,6 @@ It is best to build and run the service with docker:
 - Run (on port 8080): `docker run -p 8080:8080 spread-service`    
 
 It can also be run locally as `go run ./cmd/main.go`.
-The service is launched on `http://localhost:8080`
+The service is launched on `http://localhost:8080`   
+To run tests: `go test ./...`
+
