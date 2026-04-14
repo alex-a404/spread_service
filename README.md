@@ -9,8 +9,8 @@ The service has 3 endpoints:
 - GET `/symbols`: returns a list of currency pairs for which spreads are managed by the service. Example request: `curl http://localhost:8080/symbols`
 - GET `/spreads/<symbol>`: returns the spread if it exists and is set, alongside the last updated timestamp with 200 OK. Otherwise returns 404 Not found. Example request: `curl http://localhost:8080/spreads/BTCUSD`
 - PATCH `spreads/<symbol>`: update the spread for a currency pair. Must include `"spread" : <amount>"` in request body. Returns 200 OK if succesfully updated, 404 Not found if symbol not managed by the service, 400 bad request if amount is not > 0.  
-    Example request: `curl -X PATCH http://localhost:8080/spreads/BTCUSD \
-  -H "Content-Type: application/json" \
+    Example request: `curl -X PATCH http://localhost:8080/spreads/BTCUSD 
+  -H "Content-Type: application/json" 
   -d '{"spread": 0.1}'`
 
 ### Build instructions
